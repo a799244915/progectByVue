@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>文章管理</title>
+  <script src="./js/vue.js"></script>
+  <script src="https://unpkg.com/axios@0.18.0/dist/axios.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <script src="./js/jquery-2.1.4/jquery.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <h2>文章管理页面</h2>
+    <div class="searchDiv">
+      <el-input size="mini" style="width:200px;" v-model="search" placeholder="请输入内容"></el-input>
+      <el-button size="mini" style="float:right" type="success" @click="add">新增</el-button>
+    </div>
+  <!--  {{category}}
+    {{categoryList}} -->
+    <!-- {{categoryList}} -->
+    <el-table
+      :data="categoryList"
+      style="width: 100%" height="450">
+      <el-table-column
+        prop="name"
+        label="名称">
+      </el-table-column>
+      <el-table-column
+        prop="parent.name"
+        label="父栏目">
+      </el-table-column>
+       <el-table-column
+        prop="comment"
+        label="描述">
+      </el-table-column>
+      <el-table-column label="操作">
+        <template slot-scope="scope">
+          <el-button
+            size="mini"
+            @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
+          <el-button
+            size="mini"
+            type="danger"
+            @click="handleDelete(scope.$index, scope.row)">删除</el-button>
+        </template>
+     </el-table-column>
+    </el-table>
+    <el-dialog :title="dialogTitle" :visible.sync="dialogFormVisible">
+      <el-form :model="form">
+        <el-form-item label="栏目名称" :label-width="formLabelWidth">
+          <el-input v-model="form.name" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="父栏目" :label-width="formLabelWidth">
+          <el-select v-model="form.parentId" placeholder="请选择父栏目">
+            <el-option v-for="item in category" :label="item.name" :value="item.id"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="栏目描述" :label-width="formLabelWidth">
+          <el-input type="textarea" v-model="form.comment" autocomplete="off"></el-input>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="dialogFormVisible = false">取 消</el-button>
+        <el-button type="success" @click="save">确 定</el-button>
+      </div>
+    </el-dialog>
+  </div>
+  <script>
+    new Vue({
+      el:'#app',
+      data:{
+        formLabelWidth:'80px',
+        dialogTitle:'新增',
+        dialogFormVisible:false,
+        editors:{},
+        form:{
+          no:0,
+        },
+        search:'',
+        category:[],
+      },
+      computed:{
+        categoryList(){
+          let vm = this;
+          return this.category.filter(function(item){
+            if(item.name){
+              return item.name.indexOf(vm.search)!=-1;
+            }else{
+              return true;
+            }
+          });
+        }
+      },
+      created(){
+        this.loadData();
+      },
+      methods:{
+        save(){
+          // 保存
+          // this.form
+          let vm = this;
+          let obj = {
+            name:this.form.name,
+            parentId:this.form.parentId,
+            no:this.form.no,
+            comment:this.form.comment
+          };
+
+          $.ajax({
+            url:'http://120.78.164.247:8099/manager/category/saveOrUpdateCategory',
+            method: 'post',
+            data: this.form,
+            success:function(res){
+            vm.dialogFormVisible = false;
+            vm.bianji=false;
+            if (res.status==200) {
+                 vm.$message({
+                        showClose: true,
+                        message: vm.dialogTitle+'成功',
+                        type: 'success',
+
+                      });
+                }else{
+                  vm.$message({
+                        showClose: true,
+                        message: vm.dialogTitle+'失败',
+                        type: 'error'
+                      });
+                }
+                vm.loadData();
+            }
+          });
+
+        },
+        add(){
+          // 显示模态框，清空数据
+          this.form = {
+            no:0
+          };
+          this.dialogTitle="新增",
+          this.dialogFormVisible = true;
+        },
+        loadData(){
+          let vm = this;
+          axios.get('http://120.78.164.247:8099/manager/category/findAllCategory').then(function(param){
+            vm.category = param.data.data;
+          });
+        },
+        handleEdit(index,row){
+          let vm=this;
+          vm.dialogTitle="修改",
+          vm.dialogFormVisible=true;
+          vm.form={
+            id:row.id,
+            name:row.name,
+            parentId:row.parentId,
+            no:row.no,
+            comment:row.comment,
+            parent:row.parent,
+          }
+          
+
+        },
+        handleDelete(index,row){
+          console.log(row.id)
+          let vm=this;
+          let id=row.id
+          $.ajax({
+            url:'http://120.78.164.247:8099/manager/category/deleteCategoryById',
+            method:'get',
+            data:{id:id},
+            success:function(res){
+              console.log(res)
+              if (res.status==200) {
+                 vm.$message({
+                        showClose: true,
+                        message: '删除成功',
+                        type: 'success',
+
+                      });
+                }else{
+                  vm.$message({
+                        showClose: true,
+                        message: '删除失败',
+                        type: 'error'
+                      });
+                }
+              
+
+            },
+
+          })
+         vm.loadData();
+
+        },
+      },
+    });
+  </script>
+</body>
+</html>
